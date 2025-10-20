@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-20 17:37:03.412323",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "api_params_section",
+  "username",
+  "password",
+  "column_break_qsvd",
+  "oss_url",
+  "growatt_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "api_params_section",
+   "fieldtype": "Section Break",
+   "label": "API Params"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Username"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password"
+  },
+  {
+   "fieldname": "column_break_qsvd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "oss_url",
+   "fieldtype": "Data",
+   "label": "OSS Host"
+  },
+  {
+   "fieldname": "growatt_url",
+   "fieldtype": "Data",
+   "label": "Growatt Host"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-10-20 17:40:12.015191",
+ "modified_by": "Administrator",
+ "module": "Growatt Plant",
+ "name": "Params Growatt Plant",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
