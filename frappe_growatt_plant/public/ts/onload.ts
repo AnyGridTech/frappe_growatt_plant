@@ -13,6 +13,7 @@ import {
   PlantDoc,
 } from "./types/oss";
 import { checkMpptRoutine } from "./general/plant";
+import { JoinStep } from "@anygridtech/frappe-agt-types/agt/client/utils/db";
 
 frappe.ui.form.on<PlantDoc>("Plant", "onload", async (form) => {
   if (!form.doc.__islocal) return;
@@ -26,10 +27,10 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
   const FetchSerialNumberPlant = async (values: Record<string, any>) => {
     const sn = values[sn_field_name];
     if (typeof sn !== "string" || sn === "") return;
-    if (!growatt.utils.sn_regex.test(sn)) {
+    if (!agt.utils.validate_serial_number(sn)) {
       frappe.msgprint(__("Invalid serial number"));
       return;
-    }
+    } 
     frappe.dom.freeze(__("Processing devices..."));
     const devices = await frappe
       .call<{ message: Device[] }>({
@@ -70,7 +71,13 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
         });
     };
 
-    const plantData = await getPlantData(devices[0]);
+    const firstDevice = devices[0];
+    if (!firstDevice) {
+      frappe.dom.unfreeze();
+      frappe.msgprint(__("No devices available to fetch plant data."));
+      return;
+    }
+    const plantData = await getPlantData(firstDevice);
     if (!plantData) {
       frappe.msgprint(__("No plant data found for the given serial number."));
       return;
@@ -81,6 +88,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
         fields: ["name"],
       });
       if (existingPlants.length > 0) {
+        const existingName = existingPlants[0]?.name;
         frappe.dom.unfreeze();
         return new Promise((resolve, reject) => {
           frappe.confirm(
@@ -88,8 +96,13 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
               "A plant with this serial number already exists. Do you want to redirect to the existing plant?"
             ),
             () => {
-              frappe.set_route(["Form", "Plant", existingPlants[0].name]);
-              reject(new Error("Redirected to existing plant."));
+              if (existingName) {
+                frappe.set_route(["Form", "Plant", existingName]);
+                reject(new Error("Redirected to existing plant."));
+              } else {
+                // Fallback: no name available, stop processing
+                reject(new Error("Existing plant not found."));
+              }
             },
             () => {
               diag.hide();
@@ -145,7 +158,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
     const CreateSerialNo = async (device: Device) => {
       frappe.dom.unfreeze();
       const item_list = await GetItemCode(device);
-      let item_code = item_list[0].name;
+      let item_code = item_list.length > 0 && item_list[0]?.name ? item_list[0].name : "";
       if (item_list.length > 1) {
         const data = await checkMpptRoutine(
           device.deviceModel,
@@ -211,7 +224,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
           },
         },
       ];
-      const plant_names = await growatt.utils.filterJoin(steps);
+      const plant_names = await agt.db.filter_join(steps);
       let other_plants: PlantDoc[] = [];
       if (plant_names.length !== 0) {
         other_plants = await Promise.all(
@@ -260,7 +273,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
     }
     if (PlantsToUpdate.length > 0) {
       for (const plant of PlantsToUpdate) {
-        await growatt.utils.update_doc(
+        await agt.utils.doc.update_doc(
           plant.plant_doc.doctype,
           plant.plant_doc.name,
           {
@@ -270,7 +283,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
         );
       }
     }
-    await growatt.utils.add_rows(
+    await agt.utils.table.row.add_many(
       form,
       "equipamentos_ativos_na_planta",
       SerialNumbersToAdd
@@ -286,7 +299,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
       description: __("Enter the serial number of the device."),
     },
   ];
-  const diag = growatt.utils.load_dialog({
+  const diag = agt.utils.dialog.load({
     title: __("Serial Number Input"),
     fields: fields,
     primary_action_label: __("Submit"),

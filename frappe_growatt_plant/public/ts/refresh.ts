@@ -76,30 +76,30 @@ async function mergeActiveEquipment(
   }
 
   // Get current equipment in the plant with proper null checks
-  const currentActiveEqp = Array.isArray(frm.doc.equipamentos_ativos_na_planta) 
-    ? frm.doc.equipamentos_ativos_na_planta 
+  const currentActiveEqp = Array.isArray(frm.doc.equipamentos_ativos_na_planta)
+    ? frm.doc.equipamentos_ativos_na_planta
     : [];
-  const currentHistoryEqp = Array.isArray(frm.doc.historico_de_equipamentos) 
-    ? frm.doc.historico_de_equipamentos 
+  const currentHistoryEqp = Array.isArray(frm.doc.historico_de_equipamentos)
+    ? frm.doc.historico_de_equipamentos
     : [];
-    
+
   console.log("Current active equipment in plant:", currentActiveEqp);
   console.log("Current history equipment in plant:", currentHistoryEqp);
 
   // Create maps for easy lookup with safe array handling
   const currentEqpMap = new Map(
     currentActiveEqp
-      .filter(eq => eq && eq.serial_number) // Filter out null/undefined items
+      .filter((eq) => eq && eq.serial_number) // Filter out null/undefined items
       .map((eq) => [eq.serial_number, eq])
   );
   const historyEqpMap = new Map(
     currentHistoryEqp
-      .filter(eq => eq && eq.serial_number) // Filter out null/undefined items
+      .filter((eq) => eq && eq.serial_number) // Filter out null/undefined items
       .map((eq) => [eq.serial_number, eq])
   );
   const apiEqpMap = new Map(
     activeEqpFromApi
-      .filter(eq => eq && eq.serialNumber) // Filter out null/undefined items
+      .filter((eq) => eq && eq.serialNumber) // Filter out null/undefined items
       .map((eq) => [eq.serialNumber, eq])
   );
 
@@ -128,7 +128,9 @@ async function mergeActiveEquipment(
 
     if (existingEqp) {
       // Equipment exists in active - check if update is needed
-      if (
+      if (existingEqp.status == null) {
+        throw new Error("existingEqp.status is required here");
+      }else if (
         existingEqp.model !== apiEqp.devicemodel ||
         existingEqp.status !== apiEqp.status
       ) {
@@ -139,13 +141,15 @@ async function mergeActiveEquipment(
       }
     } else if (historyEqp) {
       // Equipment exists in history - move back to active
-      console.log(`Equipment ${apiEqp.serialNumber} found in history, moving back to active`);
+      console.log(
+        `Equipment ${apiEqp.serialNumber} found in history, moving back to active`
+      );
       equipmentToMoveFromHistory.push(historyEqp);
       equipmentToAdd.push({
         serial_number: apiEqp.serialNumber,
         model: apiEqp.devicemodel || "",
         datalogger_sn: historyEqp.datalogger_sn || "",
-        status: apiEqp.status,
+        status: apiEqp.status || "",
       });
     } else {
       // New equipment not in active or history
@@ -154,7 +158,7 @@ async function mergeActiveEquipment(
         serial_number: apiEqp.serialNumber,
         model: apiEqp.devicemodel || "",
         datalogger_sn: "",
-        status: apiEqp.status,
+        status: apiEqp.status || "",
       });
     }
   }
@@ -192,13 +196,16 @@ async function mergeActiveEquipment(
     try {
       for (const eqpToRemove of equipmentToMoveFromHistory) {
         if (!eqpToRemove || !eqpToRemove.name) {
-          console.warn("Skipping invalid equipment to remove from history:", eqpToRemove);
+          console.warn(
+            "Skipping invalid equipment to remove from history:",
+            eqpToRemove
+          );
           continue;
         }
         console.log(
           `Removing equipment ${eqpToRemove.serial_number} from history`
         );
-        await growatt.utils.delete_row(
+        await agt.utils.table.row.delete_one(
           frm,
           "historico de equipamentos",
           eqpToRemove.name
@@ -218,7 +225,7 @@ async function mergeActiveEquipment(
   if (equipmentToAdd.length > 0) {
     console.log("Adding new equipment or restoring from history");
     try {
-      await growatt.utils.add_rows(
+      await agt.utils.table.row.add_many(
         frm,
         "equipamentos_ativos_na_planta",
         equipmentToAdd
@@ -240,7 +247,7 @@ async function mergeActiveEquipment(
     try {
       // Add to history
       const historyItems = equipmentToMoveToHistory
-        .filter(eq => eq && eq.serial_number) // Filter out invalid items
+        .filter((eq) => eq && eq.serial_number) // Filter out invalid items
         .map((eq) => ({
           serial_number: eq.serial_number,
           model: eq.model || "",
@@ -248,7 +255,7 @@ async function mergeActiveEquipment(
         }));
 
       if (historyItems.length > 0) {
-        await growatt.utils.add_rows(
+        await agt.utils.table.row.add_many(
           frm,
           "historico_de_equipamentos",
           historyItems
@@ -259,13 +266,16 @@ async function mergeActiveEquipment(
       // Remove from active equipment
       for (const eqpToRemove of equipmentToMoveToHistory) {
         if (!eqpToRemove || !eqpToRemove.name) {
-          console.warn("Skipping invalid equipment to remove from active:", eqpToRemove);
+          console.warn(
+            "Skipping invalid equipment to remove from active:",
+            eqpToRemove
+          );
           continue;
         }
         console.log(
           `Removing equipment ${eqpToRemove.serial_number} from active`
         );
-        await growatt.utils.delete_row(
+        await agt.utils.table.row.delete_one(
           frm,
           "Plant Active Equipments",
           eqpToRemove.name
@@ -316,7 +326,9 @@ async function mergeActiveEquipment(
   if (movedToHistoryCount > 0)
     messages.push(`${movedToHistoryCount} equipment moved to history`);
   if (restoredFromHistoryCount > 0)
-    messages.push(`${restoredFromHistoryCount} equipment restored from history`);
+    messages.push(
+      `${restoredFromHistoryCount} equipment restored from history`
+    );
 
   if (messages.length > 0) {
     console.log("Equipment sync completed with changes:", messages.join(", "));

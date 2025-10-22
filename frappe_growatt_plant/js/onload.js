@@ -12,7 +12,7 @@ function SerialNumberInput(form) {
         const sn = values[sn_field_name];
         if (typeof sn !== "string" || sn === "")
             return;
-        if (!growatt.utils.sn_regex.test(sn)) {
+        if (!agt.utils.validate_serial_number(sn)) {
             frappe.msgprint(__("Invalid serial number"));
             return;
         }
@@ -49,7 +49,13 @@ function SerialNumberInput(form) {
                 return {};
             });
         };
-        const plantData = await getPlantData(devices[0]);
+        const firstDevice = devices[0];
+        if (!firstDevice) {
+            frappe.dom.unfreeze();
+            frappe.msgprint(__("No devices available to fetch plant data."));
+            return;
+        }
+        const plantData = await getPlantData(firstDevice);
         if (!plantData) {
             frappe.msgprint(__("No plant data found for the given serial number."));
             return;
@@ -60,11 +66,17 @@ function SerialNumberInput(form) {
                 fields: ["name"],
             });
             if (existingPlants.length > 0) {
+                const existingName = existingPlants[0]?.name;
                 frappe.dom.unfreeze();
                 return new Promise((resolve, reject) => {
                     frappe.confirm(__("A plant with this serial number already exists. Do you want to redirect to the existing plant?"), () => {
-                        frappe.set_route(["Form", "Plant", existingPlants[0].name]);
-                        reject(new Error("Redirected to existing plant."));
+                        if (existingName) {
+                            frappe.set_route(["Form", "Plant", existingName]);
+                            reject(new Error("Redirected to existing plant."));
+                        }
+                        else {
+                            reject(new Error("Existing plant not found."));
+                        }
                     }, () => {
                         diag.hide();
                     });
@@ -109,7 +121,7 @@ function SerialNumberInput(form) {
         const CreateSerialNo = async (device) => {
             frappe.dom.unfreeze();
             const item_list = await GetItemCode(device);
-            let item_code = item_list[0].name;
+            let item_code = item_list.length > 0 && item_list[0]?.name ? item_list[0].name : "";
             if (item_list.length > 1) {
                 const data = await checkMpptRoutine(device.deviceModel, device.serialNumber);
                 if (data) {
@@ -162,7 +174,7 @@ function SerialNumberInput(form) {
                     },
                 },
             ];
-            const plant_names = await growatt.utils.filterJoin(steps);
+            const plant_names = await agt.db.filter_join(steps);
             let other_plants = [];
             if (plant_names.length !== 0) {
                 other_plants = await Promise.all(plant_names.map(async (plant) => {
@@ -204,13 +216,13 @@ function SerialNumberInput(form) {
         }
         if (PlantsToUpdate.length > 0) {
             for (const plant of PlantsToUpdate) {
-                await growatt.utils.update_doc(plant.plant_doc.doctype, plant.plant_doc.name, {
+                await agt.utils.doc.update_doc(plant.plant_doc.doctype, plant.plant_doc.name, {
                     equipamentos_ativos_na_planta: plant.active_eqp_table,
                     historico_de_equipamentos: plant.history_eqp_table,
                 });
             }
         }
-        await growatt.utils.add_rows(form, "equipamentos_ativos_na_planta", SerialNumbersToAdd);
+        await agt.utils.table.row.add_many(form, "equipamentos_ativos_na_planta", SerialNumbersToAdd);
         frappe.dom.unfreeze();
     };
     const fields = [
@@ -222,7 +234,7 @@ function SerialNumberInput(form) {
             description: __("Enter the serial number of the device."),
         },
     ];
-    const diag = growatt.utils.load_dialog({
+    const diag = agt.utils.dialog.load({
         title: __("Serial Number Input"),
         fields: fields,
         primary_action_label: __("Submit"),
