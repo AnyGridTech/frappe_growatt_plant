@@ -1,6 +1,6 @@
 {
  "compilerOptions": {
-    "rootDir": "./ts",
+    "rootDir": ".",
     "outDir": "./js",
     "module": "preserve",
     "target": "ESNext",
@@ -27,7 +27,7 @@
     "strict": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
+    "moduleDetection": "force"
   },
   "include": [
     "ts/**/*.ts",
@@ -35,7 +35,8 @@
     "**/ts/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/__bundle_entry__.ts"
   ],
   "watchOptions": {
     "watchFile": "fixedPollingInterval",

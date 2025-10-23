@@ -7,6 +7,9 @@ import {
 } from "./types/oss";
 
 frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (frm) => {
+  console.log("Refresh event triggered for Plant form");
+});
+frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (frm) => {
   frappe.call({
     method: "frappe_growat_plant.api.hello_world", // The dotted path to your function
     callback: function (response) {

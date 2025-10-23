@@ -1,6 +1,16 @@
 {
+  "scripts": {
+    "build": "node build-doctypes.js",
+    "build:public": "tsc -p public/tsconfig.json",
+    "watch": "node build-doctypes.js --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.base.json",
+    "typecheck:watch": "tsc --noEmit -p tsconfig.base.json --watch"
+  },
   "dependencies": {
     "@anygridtech/frappe-agt-types": "^2.3.0",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.11"
   }
 }
