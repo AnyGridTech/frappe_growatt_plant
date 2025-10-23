@@ -1,7 +1,7 @@
 import {
   DialogField,
   DialogInstance,
-} from "@anygridtech/frappe-types/client/frappe/ui/Dialog";
+} from "@anygridtech/frappe-types/client/frappe/ui/dialog";
 import { Item } from "@anygridtech/frappe-types/doctype/erpnext/Item";
 import { SerialNo } from "@anygridtech/frappe-types/doctype/erpnext/SerialNo";
 import { FrappeForm } from "@anygridtech/frappe-types/client/frappe/core";
@@ -15,13 +15,16 @@ import {
 import { checkMpptRoutine } from "./general/plant";
 import { JoinStep } from "@anygridtech/frappe-agt-types/agt/client/utils/db";
 
+
+// function test(){
+//   console.log("Test function");
+// }
 frappe.ui.form.on<PlantDoc>("Plant", "onload", async (form) => {
   if (!form.doc.__islocal) return;
   SerialNumberInput(form);
   form.refresh_field("equipamentos_ativos_na_planta");
   form.refresh_field("historico_de_equipamentos");
 });
-
 function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
   const sn_field_name = "serial_number";
   const FetchSerialNumberPlant = async (values: Record<string, any>) => {

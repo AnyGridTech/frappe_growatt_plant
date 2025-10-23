@@ -1,4 +1,12 @@
 frappe.ui.form.on("Plant", "refresh", async (frm) => {
+    frappe.call({
+        method: "frappe_growat_plant.api.hello_world",
+        callback: function (response) {
+            if (response.message) {
+                frappe.msgprint(response.message);
+            }
+        },
+    });
     frm.add_custom_button("Refresh", () => {
         setTimeout(async () => {
             frappe.dom.freeze(__("Processing devices..."));
