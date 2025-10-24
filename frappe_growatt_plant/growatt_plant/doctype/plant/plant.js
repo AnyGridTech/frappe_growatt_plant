@@ -1,4 +1,6 @@
-// Copyright (c) 2025, AnyGridTech and contributors\n// For license information, please see license.txt
+// Copyright (c) 2025, AnyGridTech and contributors
+// For license information, please see license.txt
+"use strict";
 (() => {
   // growatt_plant/doctype/plant/ts/general/plant.ts
   async function checkMpptRoutine(item_name, sn) {
@@ -44,7 +46,7 @@
 
   // growatt_plant/doctype/plant/ts/onload.ts
   frappe.ui.form.on("Plant", "onload", async (form) => {
-    console.log("Plant onload hello test");
+    console.log("Plant onload hello world");
     if (!form.doc.__islocal) return;
     SerialNumberInput(form);
     form.refresh_field("equipamentos_ativos_na_planta");

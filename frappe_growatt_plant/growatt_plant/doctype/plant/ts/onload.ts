@@ -17,7 +17,7 @@ import { JoinStep } from "@anygridtech/frappe-agt-types/agt/client/utils/db";
 
 
 frappe.ui.form.on<PlantDoc>("Plant", "onload", async (form) => {
-  console.log("Plant onload hello test");
+  console.log("Plant onload hello world");
 
   if (!form.doc.__islocal) return;
   SerialNumberInput(form);
