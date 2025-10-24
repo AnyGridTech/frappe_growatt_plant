@@ -1,5 +1,5 @@
 {
- "compilerOptions": {
+  "compilerOptions": {
     "rootDir": ".",
     "outDir": "./js",
     "module": "preserve",
@@ -29,15 +29,8 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force"
   },
-  "include": [
-    "ts/**/*.ts",
-    "public/ts/**/*.ts",
-    "**/ts/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/__bundle_entry__.ts"
-  ],
+  "include": ["ts/**/*.ts", "**/ts/**/*.ts"],
+  "exclude": ["node_modules", "**/__bundle_entry__.ts"],
   "watchOptions": {
     "watchFile": "fixedPollingInterval",
     "watchDirectory": "fixedPollingInterval",
