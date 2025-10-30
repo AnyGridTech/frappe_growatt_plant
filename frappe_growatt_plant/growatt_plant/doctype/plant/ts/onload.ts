@@ -17,8 +17,6 @@ import { JoinStep } from "@anygridtech/frappe-agt-types/agt/client/utils/db";
 
 
 frappe.ui.form.on<PlantDoc>("Plant", "onload", async (form) => {
-  console.log("Plant onload hello test");
-
   if (!form.doc.__islocal) return;
   SerialNumberInput(form);
   form.refresh_field("equipamentos_ativos_na_planta");
@@ -36,7 +34,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
     frappe.dom.freeze(__("Processing devices..."));
     const devices = await frappe
       .call<{ message: Device[] }>({
-        method: "get_first_active_eqp",
+        method: "frappe_growatt_plant.api.get_first_active_equipment",
         args: {
           serialNumber: sn,
         },
@@ -56,7 +54,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
         .call<{
           message: GetPlantInfo;
         }>({
-          method: "get_plant_info",
+          method: "frappe_growatt_plant.api.get_plant_info",
           args: {
             serialNumber: device.serialNumber,
           },
