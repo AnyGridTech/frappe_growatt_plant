@@ -1,5 +1,10 @@
 import frappe
 
+plantRequest = {
+    "username": "",
+    "plantId": "",
+    "serverid": ""
+}
 
 @frappe.whitelist()
 def hello_growatt_plant():
@@ -44,15 +49,18 @@ def authOssApi():
         frappe.log_error(title="Growatt Auth Error", message=str(e))
         raise
 
+def getToken():
+    token = frappe.cache().get_value("growatt_plant_auth_token")
+    if not token:
+        authOssApi()
+        token = frappe.cache().get_value("growatt_plant_auth_token")
+    return token
 
 @frappe.whitelist()
 def get_active_eqp(plant_id, accountName):
     try:
         params = get_params()
-        token = frappe.cache().get_value("growatt_plant_auth_token")
-        if not token:
-            authOssApi()
-            token = frappe.cache().get_value("growatt_plant_auth_token")
+        token = getToken()
         uri = params.api_host + "oss/getActiveEquipaments"
         query_params = f"?accountName={str(accountName)}&plantId={str(plant_id)}"
         url = uri + query_params
@@ -74,13 +82,26 @@ def get_active_eqp(plant_id, accountName):
         raise
 
 
+def get_plant_data(plantRequest):
+    try:
+        params = get_params()
+        token = getToken()
+        headers = {}
+        url = params.api_host + "oss/getDevicesByPlantList"
+        query_params = f"?serverId={plantRequest['serverid']}&plantId={plantRequest['plantId']}&username={plantRequest['username']}&currPage=1"
+        url = url + query_params
+
+        headers["Authorization"] = f"Bearer {token}"
+        response = frappe.make_get_request(url, headers=headers)
+        return response
+    except Exception as e:
+        frappe.log_error(title="Growatt Get Plant Data Error", message=str(e))
+        raise
+
 def get_sn_data(serialNumber):
     try:
         params = get_params()
-        token = frappe.cache().get_value("growatt_plant_auth_token")
-        if not token:
-            authOssApi()
-            token = frappe.cache().get_value("growatt_plant_auth_token")
+        token = getToken()
         url = params.api_host + "oss/searchInverter"
         payload = {
             "serverID": 1,
@@ -102,3 +123,58 @@ def get_sn_data(serialNumber):
     except Exception as e:
         frappe.log_error(title="Growatt SN Data Error", message=str(e))
         raise
+
+
+def get_active_equipaments(plantRequest):
+    headers = {}
+    params = get_params()
+    token = getToken()     
+    url = params.api_host + "oss/getActiveEquipaments"
+    query_params = f"?serverId={plantRequest['serverid']}&plantId={plantRequest['plantId']}&accountName={plantRequest['username']}&currPage=1"
+    url = url + query_params
+    if not token:
+        frappe.log_error(title="Growatt Get Active Equipments Error", message="Token not retrieved before making request")
+        token = authOssApi()  # Ensure token is fetched before making the request
+    headers["Authorization"] = f"Bearer {token}"
+    try:
+        response = frappe.make_get_request(url, headers=headers)
+        return response
+    except Exception as e:
+        frappe.log_error(title="Growatt Get Active Equipments Error", message=str(e))
+        raise
+
+@frappe.whitelist()
+def get_first_active_equipment():
+    serialNumber = frappe.form_dict.get("serialNumber")
+    data = get_sn_data(serialNumber)
+    obj = data.get("obj")
+    if isinstance(obj, dict) and obj:
+        for key, items in obj.items():
+            if isinstance(items, list) and items:
+                entry = items[0]
+                plantRequest["serverid"] = entry.get("serverId")
+                plantRequest["plantId"] = entry.get("plantId")
+                plantRequest["username"] = entry.get("accountName")
+                break
+    else:
+        frappe.throw("No valid data found in the response.")
+    plantData = get_active_equipaments(plantRequest)
+    return plantData
+
+@frappe.whitelist()
+def get_plant_info():
+    serialNumber = frappe.form_dict.get("serialNumber")
+    token = authOssApi()
+    data = get_sn_data(serialNumber)
+    obj = data.get("obj")
+    if isinstance(obj, dict) and obj:
+        for key, items in obj.items():
+            if isinstance(items, list) and items:
+                entry = items[0]
+                plantRequest["serverid"] = entry.get("serverId")
+                plantRequest["plantId"] = entry.get("plantId")
+                plantRequest["accountName"] = entry.get("accountName")
+                plantRequest["plantName"] = entry.get("plantName")
+                break
+    else:
+        frappe.throw("No valid data found in the response.")
