@@ -9,6 +9,8 @@
   "username",
   "password",
   "column_break_qsvd",
+  "api_host",
+  "growatt_params_section",
   "oss_url",
   "growatt_url"
  ],
@@ -41,13 +43,23 @@
    "fieldname": "growatt_url",
    "fieldtype": "Data",
    "label": "Growatt Host"
+  },
+  {
+   "fieldname": "api_host",
+   "fieldtype": "Data",
+   "label": "API Host"
+  },
+  {
+   "fieldname": "growatt_params_section",
+   "fieldtype": "Section Break",
+   "label": "Growatt Params"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-10-20 17:40:12.015191",
+ "modified": "2025-10-30 11:08:54.168302",
  "modified_by": "Administrator",
  "module": "Growatt Plant",
  "name": "Params Growatt Plant",

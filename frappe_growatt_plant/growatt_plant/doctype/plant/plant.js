@@ -46,7 +46,7 @@
 
   // growatt_plant/doctype/plant/ts/onload.ts
   frappe.ui.form.on("Plant", "onload", async (form) => {
-    console.log("Plant onload hello world");
+    console.log("Plant onload hello test");
     if (!form.doc.__islocal) return;
     SerialNumberInput(form);
     form.refresh_field("equipamentos_ativos_na_planta");
@@ -318,7 +318,7 @@
   });
   frappe.ui.form.on("Plant", "refresh", async (frm) => {
     frappe.call({
-      method: "frappe_growat_plant.api.hello_world",
+      method: "frappe_growatt_plant.api.hello_growatt_plant",
       // The dotted path to your function
       callback: function(response) {
         if (response.message) {

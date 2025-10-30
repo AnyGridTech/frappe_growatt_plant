@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@anygridtech/frappe-agt-types": "^2.3.0",
+    "@anygridtech/frappe-ts-tools": "^0.0.2",
     "typescript": "^5.9.3"
   },
   "devDependencies": {

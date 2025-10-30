@@ -11,7 +11,7 @@ frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (frm) => {
 });
 frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (frm) => {
   frappe.call({
-    method: "frappe_growat_plant.api.hello_world", // The dotted path to your function
+    method: "frappe_growatt_plant.api.hello_growatt_plant", // The dotted path to your function
     callback: function (response) {
       // The 'response' object contains the return value
       // in response.message
