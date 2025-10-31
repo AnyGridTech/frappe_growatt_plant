@@ -63,7 +63,7 @@
       }
       frappe.dom.freeze(__("Processing devices..."));
       const devices = await frappe.call({
-        method: "get_first_active_eqp",
+        method: "frappe_growatt_plant.api.get_first_active_equipment",
         args: {
           serialNumber: sn
         }
@@ -78,7 +78,7 @@
       }
       const getPlantData = async (device) => {
         return await frappe.call({
-          method: "get_plant_info",
+          method: "frappe_growatt_plant.api.get_plant_info",
           args: {
             serialNumber: device.serialNumber
           }
@@ -317,15 +317,6 @@
     console.log("Refresh event triggered for Plant form");
   });
   frappe.ui.form.on("Plant", "refresh", async (frm) => {
-    frappe.call({
-      method: "frappe_growatt_plant.api.hello_growatt_plant",
-      // The dotted path to your function
-      callback: function(response) {
-        if (response.message) {
-          frappe.msgprint(response.message);
-        }
-      }
-    });
     frm.add_custom_button("Refresh", () => {
       setTimeout(async () => {
         frappe.dom.freeze(__("Processing devices..."));
@@ -343,7 +334,7 @@
   async function updatePlant(frm) {
     console.log("Starting updatePlant function");
     let activeEqp = await frappe.call({
-      method: "getActiveEqp",
+      method: "frappe_growatt_plant.api.get_active_eqp",
       args: {
         plantId: frm.doc.plant_id,
         accountName: frm.doc.accountname

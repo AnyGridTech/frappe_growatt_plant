@@ -24,10 +24,11 @@ def get_params():
 def authOssApi():
     try:
         params = get_params()
+        frappe.logger().info(params)
         url = params.api_host + "/oss/login"
         payload = {
             "username": params.username,
-            "password": params.get_password("password"),
+            "pwd": params.get_password("password"),
             "ossUrl": params.oss_url,
             "growattUrl": params.growatt_url,
         }
@@ -65,7 +66,7 @@ def get_active_eqp(plant_id, accountName):
     try:
         params = get_params()
         token = getToken()
-        uri = params.api_host + "oss/getActiveEquipaments"
+        uri = params.api_host + "/oss/getActiveEquipaments"
         query_params = f"?accountName={str(accountName)}&plantId={str(plant_id)}"
         url = uri + query_params
         headers = {
@@ -82,7 +83,7 @@ def get_active_eqp(plant_id, accountName):
                 message="No active equipments found",
             )
             frappe.msgprint("No active equipments found")
-        frappe.response["message"] = data
+        return data
     except Exception as e:
         frappe.log_error(title="Growatt Active Equipments Error", message=str(e))
         raise
@@ -93,7 +94,7 @@ def get_plant_data(plantRequest):
         params = get_params()
         token = getToken()
         headers = {"Authorization": f"Bearer {token}"}
-        url = params.api_host + "oss/getDevicesByPlantList"
+        url = params.api_host + "/oss/getDevicesByPlantList"
         query_params = f"?serverId={plantRequest['serverid']}&plantId={plantRequest['plantId']}&username={plantRequest['username']}&currPage=1"
         url = url + query_params
 
@@ -108,7 +109,7 @@ def get_sn_data(serialNumber):
     try:
         params = get_params()
         token = getToken()
-        url = params.api_host + "oss/searchInverter"
+        url = params.api_host + "/oss/searchInverter"
         payload = {
             "serverID": 1,
             "type": 0,
@@ -136,7 +137,7 @@ def get_sn_data(serialNumber):
 def get_active_equipaments(plantRequest):
     params = get_params()
     token = getToken()     
-    url = params.api_host + "oss/getActiveEquipaments"
+    url = params.api_host + "/oss/getActiveEquipaments"
     query_params = f"?serverId={plantRequest['serverid']}&plantId={plantRequest['plantId']}&accountName={plantRequest['username']}&currPage=1"
     url = url + query_params
     if not token:
@@ -168,7 +169,7 @@ def get_first_active_equipment():
     else:
         frappe.throw("No valid data found in the response.")
     plantData = get_active_equipaments(plantRequest)
-    frappe.response["message"] = plantData 
+    return plantData
 
 @frappe.whitelist()
 def get_plant_info():
@@ -185,6 +186,6 @@ def get_plant_info():
                 plantRequest["accountName"] = entry.get("accountName")
                 plantRequest["plantName"] = entry.get("plantName")
                 break
-        frappe.response["message"] = plantRequest
+        return plantRequest
     else:
         frappe.throw("No valid data found in the response.")
