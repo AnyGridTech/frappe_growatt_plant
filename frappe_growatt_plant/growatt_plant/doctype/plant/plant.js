@@ -46,7 +46,6 @@
 
   // growatt_plant/doctype/plant/ts/onload.ts
   frappe.ui.form.on("Plant", "onload", async (form) => {
-    console.log("Plant onload hello test");
     if (!form.doc.__islocal) return;
     SerialNumberInput(form);
     form.refresh_field("equipamentos_ativos_na_planta");

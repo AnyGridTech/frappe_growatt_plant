@@ -11,7 +11,9 @@
   "section_break_jxqj",
   "equipamentos_ativos_na_planta",
   "section_break_fzou",
-  "historico_de_equipamentos"
+  "historico_de_equipamentos",
+  "internal_tab",
+  "plant_id"
  ],
  "fields": [
   {
@@ -47,12 +49,22 @@
    "fieldtype": "Table",
    "label": "Hist\u00f3rico de Equipamentos",
    "options": "Equipment History Table"
+  },
+  {
+   "fieldname": "internal_tab",
+   "fieldtype": "Tab Break",
+   "label": "Internal"
+  },
+  {
+   "fieldname": "plant_id",
+   "fieldtype": "Data",
+   "label": "plant_id"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-20 11:42:24.480846",
+ "modified": "2025-11-03 17:26:27.892649",
  "modified_by": "Administrator",
  "module": "Growatt Plant",
  "name": "Plant",

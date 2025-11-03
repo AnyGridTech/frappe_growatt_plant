@@ -62,12 +62,12 @@ def getToken():
     return token
 
 @frappe.whitelist()
-def get_active_eqp(plant_id, accountName):
+def get_active_eqp(plantId, accountName):
     try:
         params = get_params()
         token = getToken()
         uri = params.api_host + "/oss/getActiveEquipaments"
-        query_params = f"?accountName={str(accountName)}&plantId={str(plant_id)}"
+        query_params = f"?accountName={str(accountName)}&plantId={str(plantId)}"
         url = uri + query_params
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
