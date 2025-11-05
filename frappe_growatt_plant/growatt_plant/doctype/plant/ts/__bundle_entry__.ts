@@ -1,2 +1,0 @@
-import "./onload";
-import "./refresh";

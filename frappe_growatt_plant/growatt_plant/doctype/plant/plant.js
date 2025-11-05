@@ -110,7 +110,7 @@
         if (existingPlants.length > 0) {
           const existingName = existingPlants[0]?.name;
           frappe.dom.unfreeze();
-          return new Promise((resolve, reject) => {
+          await new Promise((_resolve, reject) => {
             frappe.confirm(
               __(
                 "A plant with this serial number already exists. Do you want to redirect to the existing plant?"
@@ -125,6 +125,7 @@
               },
               () => {
                 diag.hide();
+                reject(new Error("User cancelled duplicate plant confirmation."));
               }
             );
           });
@@ -154,7 +155,7 @@
         const device_model = device.deviceModel;
         return await frappe.db.get_list("Item", {
           filters: { item_name: device_model },
-          fields: ["name", "custom_mppt"]
+          fields: ["name", "mppt"]
         }).then((data) => data).catch((e) => {
           const msg = e?.message || e;
           frappe.throw(
@@ -228,7 +229,7 @@
             }
           }
         ];
-        const plant_names = await agt.db.filter_join(steps);
+        const plant_names = await agt.utils.db.filter_join(steps);
         let other_plants = [];
         if (plant_names.length !== 0) {
           other_plants = await Promise.all(
@@ -275,16 +276,18 @@
         }
       }
       if (PlantsToUpdate.length > 0) {
-        for (const plant of PlantsToUpdate) {
-          await agt.utils.doc.update_doc(
-            plant.plant_doc.doctype,
-            plant.plant_doc.name,
-            {
-              equipamentos_ativos_na_planta: plant.active_eqp_table,
-              historico_de_equipamentos: plant.history_eqp_table
-            }
-          );
-        }
+        await Promise.all(
+          PlantsToUpdate.map(
+            (plant) => agt.utils.doc.update_doc(
+              plant.plant_doc.doctype,
+              plant.plant_doc.name,
+              {
+                equipamentos_ativos_na_planta: plant.active_eqp_table,
+                historico_de_equipamentos: plant.history_eqp_table
+              }
+            )
+          )
+        );
       }
       await agt.utils.table.row.add_many(
         form,
@@ -311,8 +314,13 @@
     return diag;
   }
 
+  // growatt_plant/doctype/plant/ts/utils.ts
+  function hasChanged(oldValue, newValue) {
+    return (oldValue ?? "") !== (newValue ?? "");
+  }
+
   // growatt_plant/doctype/plant/ts/refresh.ts
-  frappe.ui.form.on("Plant", "refresh", async (frm) => {
+  frappe.ui.form.on("Plant", "refresh", async (_frm) => {
     console.log("Refresh event triggered for Plant form");
   });
   frappe.ui.form.on("Plant", "refresh", async (frm) => {
@@ -362,6 +370,9 @@
   }
   async function mergeActiveEquipment(frm, activeEqpFromApi) {
     console.log("Starting mergeActiveEquipment with API data:", activeEqpFromApi);
+    if (!frm?.doc) {
+      throw new Error("Invalid form document");
+    }
     if (!Array.isArray(activeEqpFromApi)) {
       console.warn("activeEqpFromApi is not an array:", activeEqpFromApi);
       activeEqpFromApi = [];
@@ -385,16 +396,16 @@
     const equipmentToMoveFromHistory = [];
     console.log("Processing API equipment for additions and updates");
     for (const apiEqp of activeEqpFromApi) {
-      if (!apiEqp || !apiEqp.serialNumber) {
+      if (!apiEqp?.serialNumber) {
         console.warn("Skipping invalid API equipment:", apiEqp);
         continue;
       }
       const existingEqp = currentEqpMap.get(apiEqp.serialNumber);
       const historyEqp = historyEqpMap.get(apiEqp.serialNumber);
       if (existingEqp) {
-        if (existingEqp.status == null) {
+        if (existingEqp.status === null || existingEqp.status === void 0) {
           throw new Error("existingEqp.status is required here");
-        } else if (existingEqp.model !== apiEqp.devicemodel || existingEqp.status !== apiEqp.status) {
+        } else if (hasChanged(existingEqp.model, apiEqp.devicemodel) || hasChanged(existingEqp.status, apiEqp.status)) {
           console.log(`Equipment ${apiEqp.serialNumber} needs update`);
           existingEqp.model = apiEqp.devicemodel || existingEqp.model;
           existingEqp.status = apiEqp.status || existingEqp.status;
@@ -423,7 +434,7 @@
     }
     console.log("Finding equipment to move to history");
     for (const currentEqp of currentActiveEqp) {
-      if (!currentEqp || !currentEqp.serial_number) {
+      if (!currentEqp?.serial_number) {
         console.warn("Skipping invalid current equipment:", currentEqp);
         continue;
       }
@@ -445,7 +456,7 @@
       console.log("Removing equipment from history");
       try {
         for (const eqpToRemove of equipmentToMoveFromHistory) {
-          if (!eqpToRemove || !eqpToRemove.name) {
+          if (!eqpToRemove?.name) {
             console.warn(
               "Skipping invalid equipment to remove from history:",
               eqpToRemove
@@ -503,7 +514,7 @@
           console.log("Successfully added items to history");
         }
         for (const eqpToRemove of equipmentToMoveToHistory) {
-          if (!eqpToRemove || !eqpToRemove.name) {
+          if (!eqpToRemove?.name) {
             console.warn(
               "Skipping invalid equipment to remove from active:",
               eqpToRemove

@@ -90,7 +90,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
       if (existingPlants.length > 0) {
         const existingName = existingPlants[0]?.name;
         frappe.dom.unfreeze();
-        return new Promise((resolve, reject) => {
+        await new Promise<void>((_resolve, reject) => {
           frappe.confirm(
             __(
               "A plant with this serial number already exists. Do you want to redirect to the existing plant?"
@@ -100,12 +100,12 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
                 frappe.set_route(["Form", "Plant", existingName]);
                 reject(new Error("Redirected to existing plant."));
               } else {
-                // Fallback: no name available, stop processing
                 reject(new Error("Existing plant not found."));
               }
             },
             () => {
               diag.hide();
+              reject(new Error("User cancelled duplicate plant confirmation."));
             }
           );
         });
@@ -142,7 +142,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
       return await frappe.db
         .get_list<Item>("Item", {
           filters: { item_name: device_model },
-          fields: ["name", "custom_mppt"],
+          fields: ["name", "mppt"],
         })
         .then((data) => data)
         .catch((e) => {
@@ -224,7 +224,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
           },
         },
       ];
-      const plant_names = await agt.db.filter_join(steps);
+      const plant_names = await agt.utils.db.filter_join(steps);
       let other_plants: PlantDoc[] = [];
       if (plant_names.length !== 0) {
         other_plants = await Promise.all(
@@ -272,16 +272,18 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
       }
     }
     if (PlantsToUpdate.length > 0) {
-      for (const plant of PlantsToUpdate) {
-        await agt.utils.doc.update_doc(
-          plant.plant_doc.doctype,
-          plant.plant_doc.name,
-          {
-            equipamentos_ativos_na_planta: plant.active_eqp_table,
-            historico_de_equipamentos: plant.history_eqp_table,
-          }
-        );
-      }
+      await Promise.all(
+        PlantsToUpdate.map((plant) =>
+          agt.utils.doc.update_doc(
+            plant.plant_doc.doctype,
+            plant.plant_doc.name,
+            {
+              equipamentos_ativos_na_planta: plant.active_eqp_table,
+              historico_de_equipamentos: plant.history_eqp_table,
+            }
+          )
+        )
+      );
     }
     await agt.utils.table.row.add_many(
       form,
