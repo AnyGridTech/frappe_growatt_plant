@@ -31,20 +31,28 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
       frappe.msgprint(__("Invalid serial number"));
       return;
     } 
-    frappe.dom.freeze(__("Processing devices..."));
-    const devices = await frappe
-      .call<{ message: Device[] }>({
-        method: "frappe_growatt_plant.api.get_first_active_equipment",
-        args: {
-          serialNumber: sn,
-        },
-      })
-      .then((r) => r.message)
-      .catch((e) => {
-        const msg = e?.message || e;
-        frappe.throw(__(`Error fetching devices: ${msg}`));
-        return [];
-      });
+      frappe.dom.freeze(__("Processing devices..."));
+      const devices = await frappe
+        .call<{ message: Device[] }>(
+          {
+            method: "frappe_growatt_plant.api.get_first_active_equipment",
+            args: {
+              serialNumber: sn,
+            },
+          }
+        )
+        .then((r) => r.message)
+        .catch((e) => {
+          // Log full error object for debugging and present a readable message to the user
+          console.error("Error fetching devices:", e);
+          const msg =
+            typeof e === "string"
+              ? e
+              : e?.message ?? JSON.stringify(e, Object.getOwnPropertyNames(e));
+          // Use msgprint instead of throw to avoid breaking the UI thread here
+          frappe.msgprint(__(`Error fetching devices: ${msg}`));
+          return [];
+        });
     if (devices.length === 0) {
       frappe.msgprint(__("No devices found for the given serial number."));
       return;
@@ -61,14 +69,21 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
         })
         .then((r) => r.message)
         .catch((e) => {
-          const msg = e?.message || e;
-          frappe.throw(
-            __(
-              `Error fetching plant data for device "${device.serialNumber}": ${msg}`
-            )
-          );
-          return {} as GetPlantInfo;
-        });
+            console.error(
+              `Error fetching plant data for device "${device.serialNumber}":`,
+              e
+            );
+            const msg =
+              typeof e === "string"
+                ? e
+                : e?.message ?? JSON.stringify(e, Object.getOwnPropertyNames(e));
+            frappe.msgprint(
+              __(
+                `Error fetching plant data for device "${device.serialNumber}": ${msg}`
+              )
+            );
+            return {} as GetPlantInfo;
+          });
     };
 
     const firstDevice = devices[0];

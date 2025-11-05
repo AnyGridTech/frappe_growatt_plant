@@ -55,7 +55,11 @@ async function updatePlant(frm: FrappeForm<PlantDoc>) {
     })
     .catch((e) => {
       console.error("Error fetching active equipment:", e);
-      frappe.msgprint(__("Error fetching active equipment"));
+      const msg =
+        typeof e === "string"
+          ? e
+          : e?.message ?? JSON.stringify(e, Object.getOwnPropertyNames(e));
+      frappe.msgprint(__(`Error fetching active equipment: ${msg}`));
       return [];
     });
 
