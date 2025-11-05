@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:plant_id",
  "creation": "2025-10-20 11:31:49.798447",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -60,7 +61,8 @@
   {
    "fieldname": "plant_id",
    "fieldtype": "Data",
-   "label": "plant_id"
+   "label": "plant_id",
+   "unique": 1
   },
   {
    "fieldname": "column_break_dwkn",
@@ -75,10 +77,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-05 15:11:40.107470",
+ "modified": "2025-11-05 17:49:00.750289",
  "modified_by": "Administrator",
  "module": "Growatt Plant",
  "name": "Plant",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
