@@ -82,7 +82,7 @@ def get_active_eqp(plantId, accountName):
         params = get_params()
         token = get_token()
         uri = params.api_host + "/oss/getActiveEquipaments"
-        query_params = f"?accountName={str(accountName)}&plantId={str(plantId)}"
+        query_params = f"?accountName={str(accountName)}&plantId={str(plantId)}&serverId=1"
         url = uri + query_params
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -95,8 +95,13 @@ def get_active_eqp(plantId, accountName):
         
         if not data:
             frappe.throw(_("No response received from API"))
+        if isinstance(data, list):
+            equipment_data = data
+        elif isinstance(data, dict):
+            equipment_data = data.get("data", [])
+        else:
+            frappe.throw(_("Unexpected response format from API"))
         
-        equipment_data = data.get("data")
         if not equipment_data:
             frappe.log_error(
                 title="Growatt Active Equipments Error",

@@ -215,7 +215,11 @@
             return frappe.throw(
               `Failed to create Serial No "${device.serialNumber} with model "${device.deviceModel}".`
             );
-          SerialNumbersToAdd.push({ serial_number: serial_no.name });
+          SerialNumbersToAdd.push({
+            serial_number: device.serialNumber,
+            status: device.status,
+            datalogger_sn: ""
+          });
           continue deviceLoop;
         }
         const steps = [
@@ -253,7 +257,11 @@
           );
         }
         if (other_plants.length === 0) {
-          SerialNumbersToAdd.push({ serial_number: device.serialNumber });
+          SerialNumbersToAdd.push({
+            serial_number: device.serialNumber,
+            status: device.status,
+            datalogger_sn: ""
+          });
           continue deviceLoop;
         }
         plantLoop: for (const plant of other_plants) {

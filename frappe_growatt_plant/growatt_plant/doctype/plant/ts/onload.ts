@@ -271,7 +271,7 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
     };
   // Serial numbers to append to the current Plant form's active
   // equipment table at the end of processing.
-  const SerialNumbersToAdd: { serial_number: string }[] = [];
+  const SerialNumbersToAdd: EqpActiveDoc[] = [];
     const PlantsToUpdate: {
       plant_doc: PlantDoc;
       active_eqp_table: EqpActiveDoc[];
@@ -291,7 +291,11 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
           return frappe.throw(
             `Failed to create Serial No "${device.serialNumber} with model "${device.deviceModel}".`
           );
-        SerialNumbersToAdd.push({ serial_number: serial_no.name });
+        SerialNumbersToAdd.push({
+          serial_number: device.serialNumber,
+          status: device.status,
+          datalogger_sn: "",
+        } as EqpActiveDoc);
         continue deviceLoop;
       }
 
@@ -334,7 +338,11 @@ function SerialNumberInput(form: FrappeForm<PlantDoc>): DialogInstance {
       // If no other plants claim this serial, queue it to be added to the
       // current Plant's active equipment table.
       if (other_plants.length === 0) {
-        SerialNumbersToAdd.push({ serial_number: device.serialNumber });
+        SerialNumbersToAdd.push({
+          serial_number: device.serialNumber,
+          status: device.status,
+          datalogger_sn: "",
+        } as EqpActiveDoc);
         continue deviceLoop;
       }
       plantLoop: for (const plant of other_plants) {
