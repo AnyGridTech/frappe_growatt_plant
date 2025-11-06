@@ -12,12 +12,6 @@ plantRequest = {
 }
 
 
-@frappe.whitelist()
-def hello_growatt_plant():
-    """Test endpoint to verify API is working"""
-    frappe.msgprint("Hello from Growatt Plant API")
-
-
 def get_params():
     """Get Growatt Plant parameters from single doctype"""
     try:
@@ -27,7 +21,6 @@ def get_params():
         frappe.log_error(title="Growatt Params Error", message=str(e))
         raise
 
-@frappe.whitelist()
 def authOssApi():
     """Authenticate with Growatt OSS API and store token in cache"""
     try:
@@ -69,8 +62,13 @@ def authOssApi():
 def get_token():
     """Get authentication token from cache or authenticate if not available"""
     token = frappe.cache().get_value("growatt_plant_auth_token")
+    if token:
+        return token
+    try:
+        token = authOssApi()
+    except Exception:
+        raise
     if not token:
-        authOssApi()
         token = frappe.cache().get_value("growatt_plant_auth_token")
     return token
 

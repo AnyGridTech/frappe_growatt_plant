@@ -61,14 +61,17 @@
         return;
       }
       frappe.dom.freeze(__("Processing devices..."));
-      const devices = await frappe.call({
-        method: "frappe_growatt_plant.api.get_first_active_equipment",
-        args: {
-          serialNumber: sn
+      const devices = await frappe.call(
+        {
+          method: "frappe_growatt_plant.api.get_first_active_equipment",
+          args: {
+            serialNumber: sn
+          }
         }
-      }).then((r) => r.message).catch((e) => {
-        const msg = e?.message || e;
-        frappe.throw(__(`Error fetching devices: ${msg}`));
+      ).then((r) => r.message).catch((e) => {
+        console.error("Error fetching devices:", e);
+        const msg = typeof e === "string" ? e : e?.message ?? JSON.stringify(e, Object.getOwnPropertyNames(e));
+        frappe.msgprint(__(`Error fetching devices: ${msg}`));
         return [];
       });
       if (devices.length === 0) {
@@ -82,8 +85,12 @@
             serialNumber: device.serialNumber
           }
         }).then((r) => r.message).catch((e) => {
-          const msg = e?.message || e;
-          frappe.throw(
+          console.error(
+            `Error fetching plant data for device "${device.serialNumber}":`,
+            e
+          );
+          const msg = typeof e === "string" ? e : e?.message ?? JSON.stringify(e, Object.getOwnPropertyNames(e));
+          frappe.msgprint(
             __(
               `Error fetching plant data for device "${device.serialNumber}": ${msg}`
             )
@@ -351,7 +358,8 @@
       return r.message;
     }).catch((e) => {
       console.error("Error fetching active equipment:", e);
-      frappe.msgprint(__("Error fetching active equipment"));
+      const msg = typeof e === "string" ? e : e?.message ?? JSON.stringify(e, Object.getOwnPropertyNames(e));
+      frappe.msgprint(__(`Error fetching active equipment: ${msg}`));
       return [];
     });
     console.log("Active Equipment:", activeEqp);

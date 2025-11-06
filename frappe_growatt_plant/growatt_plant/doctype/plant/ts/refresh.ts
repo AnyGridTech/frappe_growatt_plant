@@ -11,16 +11,6 @@ frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (_frm) => {
   console.log("Refresh event triggered for Plant form");
 });
 frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (frm) => {
-  // frappe.call({
-  //   method: "frappe_growatt_plant.api.hello_growatt_plant", // The dotted path to your function
-  //   callback: function (response) {
-  //     // The 'response' object contains the return value
-  //     // in response.message
-  //     if (response.message) {
-  //       frappe.msgprint(response.message);
-  //     }
-  //   },
-  // });
   frm.add_custom_button("Refresh", () => {
     setTimeout(async () => {
       frappe.dom.freeze(__("Processing devices..."));
