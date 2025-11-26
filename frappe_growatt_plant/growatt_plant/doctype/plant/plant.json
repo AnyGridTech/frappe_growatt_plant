@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:plant_id",
  "creation": "2025-10-20 11:31:49.798447",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -13,7 +14,9 @@
   "section_break_fzou",
   "historico_de_equipamentos",
   "internal_tab",
-  "plant_id"
+  "plant_id",
+  "column_break_dwkn",
+  "accountname"
  ],
  "fields": [
   {
@@ -58,16 +61,27 @@
   {
    "fieldname": "plant_id",
    "fieldtype": "Data",
-   "label": "plant_id"
+   "label": "plant_id",
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_dwkn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "accountname",
+   "fieldtype": "Data",
+   "label": "Account Name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-03 17:26:27.892649",
+ "modified": "2025-11-05 17:49:00.750289",
  "modified_by": "Administrator",
  "module": "Growatt Plant",
  "name": "Plant",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

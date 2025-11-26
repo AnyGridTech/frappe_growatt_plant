@@ -5,21 +5,12 @@ import {
   EqpHistoryDoc,
   PlantDoc,
 } from "./types/oss";
+import { hasChanged } from "./utils";
 
-frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (frm) => {
+frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (_frm) => {
   console.log("Refresh event triggered for Plant form");
 });
 frappe.ui.form.on<PlantDoc>("Plant", "refresh", async (frm) => {
-  // frappe.call({
-  //   method: "frappe_growatt_plant.api.hello_growatt_plant", // The dotted path to your function
-  //   callback: function (response) {
-  //     // The 'response' object contains the return value
-  //     // in response.message
-  //     if (response.message) {
-  //       frappe.msgprint(response.message);
-  //     }
-  //   },
-  // });
   frm.add_custom_button("Refresh", () => {
     setTimeout(async () => {
       frappe.dom.freeze(__("Processing devices..."));
@@ -54,7 +45,11 @@ async function updatePlant(frm: FrappeForm<PlantDoc>) {
     })
     .catch((e) => {
       console.error("Error fetching active equipment:", e);
-      frappe.msgprint(__("Error fetching active equipment"));
+      const msg =
+        typeof e === "string"
+          ? e
+          : e?.message ?? JSON.stringify(e, Object.getOwnPropertyNames(e));
+      frappe.msgprint(__(`Error fetching active equipment: ${msg}`));
       return [];
     });
 
@@ -81,6 +76,11 @@ async function mergeActiveEquipment(
   activeEqpFromApi: EqpActiveApi[]
 ) {
   console.log("Starting mergeActiveEquipment with API data:", activeEqpFromApi);
+
+  // Validate inputs
+  if (!frm?.doc) {
+    throw new Error("Invalid form document");
+  }
 
   // Ensure activeEqpFromApi is valid
   if (!Array.isArray(activeEqpFromApi)) {
@@ -131,7 +131,7 @@ async function mergeActiveEquipment(
   // Process API equipment - find new, updated, or equipment to restore from history
   for (const apiEqp of activeEqpFromApi) {
     // Skip if apiEqp is null/undefined or doesn't have serialNumber
-    if (!apiEqp || !apiEqp.serialNumber) {
+    if (!apiEqp?.serialNumber) {
       console.warn("Skipping invalid API equipment:", apiEqp);
       continue;
     }
@@ -141,11 +141,11 @@ async function mergeActiveEquipment(
 
     if (existingEqp) {
       // Equipment exists in active - check if update is needed
-      if (existingEqp.status == null) {
+      if (existingEqp.status === null || existingEqp.status === undefined) {
         throw new Error("existingEqp.status is required here");
       } else if (
-        existingEqp.model !== apiEqp.devicemodel ||
-        existingEqp.status !== apiEqp.status
+        hasChanged(existingEqp.model, apiEqp.devicemodel) ||
+        hasChanged(existingEqp.status, apiEqp.status)
       ) {
         console.log(`Equipment ${apiEqp.serialNumber} needs update`);
         existingEqp.model = apiEqp.devicemodel || existingEqp.model;
@@ -180,7 +180,7 @@ async function mergeActiveEquipment(
   // Find equipment that is no longer active (exists in current but not in API)
   for (const currentEqp of currentActiveEqp) {
     // Skip if currentEqp is null/undefined or doesn't have serial_number
-    if (!currentEqp || !currentEqp.serial_number) {
+    if (!currentEqp?.serial_number) {
       console.warn("Skipping invalid current equipment:", currentEqp);
       continue;
     }
@@ -208,7 +208,7 @@ async function mergeActiveEquipment(
     console.log("Removing equipment from history");
     try {
       for (const eqpToRemove of equipmentToMoveFromHistory) {
-        if (!eqpToRemove || !eqpToRemove.name) {
+        if (!eqpToRemove?.name) {
           console.warn(
             "Skipping invalid equipment to remove from history:",
             eqpToRemove
@@ -278,7 +278,7 @@ async function mergeActiveEquipment(
 
       // Remove from active equipment
       for (const eqpToRemove of equipmentToMoveToHistory) {
-        if (!eqpToRemove || !eqpToRemove.name) {
+        if (!eqpToRemove?.name) {
           console.warn(
             "Skipping invalid equipment to remove from active:",
             eqpToRemove

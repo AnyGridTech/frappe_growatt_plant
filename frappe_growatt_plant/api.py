@@ -1,18 +1,19 @@
 import frappe
 import requests
+from frappe import _
+from typing import Dict, Optional, Any
 
+
+# Global variable for plant request data
 plantRequest = {
     "username": "",
     "plantId": "",
     "serverid": ""
 }
 
-@frappe.whitelist()
-def hello_growatt_plant():
-    frappe.msgprint("Hello from Growatt Plant API")
-
 
 def get_params():
+    """Get Growatt Plant parameters from single doctype"""
     try:
         params = frappe.get_single("Params Growatt Plant")
         return params
@@ -20,8 +21,8 @@ def get_params():
         frappe.log_error(title="Growatt Params Error", message=str(e))
         raise
 
-@frappe.whitelist()
 def authOssApi():
+    """Authenticate with Growatt OSS API and store token in cache"""
     try:
         params = get_params()
         frappe.logger().info(params)
@@ -43,31 +44,45 @@ def authOssApi():
                 title="Growatt Auth Error",
                 message="Token not found in the API response",
             )
-            frappe.msgprint("Token not found in the API response")
+            frappe.throw(_("Authentication failed: Token not found in API response"))
         else:
             frappe.cache().set_value(
                 "growatt_plant_auth_token", token, expires_in_sec=43200
             )
             frappe.logger().info("Growatt Auth Token stored in Redis")
+            return token
+    except requests.RequestException as e:
+        frappe.log_error(title="Growatt Auth Error", message=str(e))
+        frappe.throw(_("Authentication failed: {0}").format(str(e)))
     except Exception as e:
         frappe.log_error(title="Growatt Auth Error", message=str(e))
         raise
 
 
-def getToken():
+def get_token():
+    """Get authentication token from cache or authenticate if not available"""
     token = frappe.cache().get_value("growatt_plant_auth_token")
+    if token:
+        return token
+    try:
+        token = authOssApi()
+    except Exception:
+        raise
     if not token:
-        authOssApi()
         token = frappe.cache().get_value("growatt_plant_auth_token")
     return token
 
 @frappe.whitelist()
 def get_active_eqp(plantId, accountName):
+    """Get active equipment for a plant"""
+    if not plantId or not accountName:
+        frappe.throw(_("Plant ID and Account Name are required"))
+    
     try:
         params = get_params()
-        token = getToken()
+        token = get_token()
         uri = params.api_host + "/oss/getActiveEquipaments"
-        query_params = f"?accountName={str(accountName)}&plantId={str(plantId)}"
+        query_params = f"?accountName={str(accountName)}&plantId={str(plantId)}&serverId=1"
         url = uri + query_params
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -77,22 +92,38 @@ def get_active_eqp(plantId, accountName):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        if not data.get("data"):
+        
+        if not data:
+            frappe.throw(_("No response received from API"))
+        if isinstance(data, list):
+            equipment_data = data
+        elif isinstance(data, dict):
+            equipment_data = data.get("data", [])
+        else:
+            frappe.throw(_("Unexpected response format from API"))
+        
+        if not equipment_data:
             frappe.log_error(
                 title="Growatt Active Equipments Error",
-                message="No active equipments found",
+                message=f"No active equipments found for Plant ID: {plantId}",
             )
-            frappe.msgprint("No active equipments found")
-        return data
+            frappe.msgprint(_("No active equipments found for Plant ID: {0}").format(plantId))
+            return []
+        
+        return equipment_data
+    except requests.RequestException as e:
+        frappe.log_error(title="Growatt Active Equipments Error", message=str(e))
+        frappe.throw(_("Failed to fetch active equipment: {0}").format(str(e)))
     except Exception as e:
         frappe.log_error(title="Growatt Active Equipments Error", message=str(e))
         raise
 
 
-def get_plant_data(plantRequest):
+def get_plant_data(plantRequest: Dict[str, Any]) -> Dict[str, Any]:
+    """Get plant device data from Growatt API"""
     try:
         params = get_params()
-        token = getToken()
+        token = get_token()
         headers = {"Authorization": f"Bearer {token}"}
         url = params.api_host + "/oss/getDevicesByPlantList"
         query_params = f"?serverId={plantRequest['serverid']}&plantId={plantRequest['plantId']}&username={plantRequest['username']}&currPage=1"
@@ -101,14 +132,26 @@ def get_plant_data(plantRequest):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json()
+    except requests.RequestException as e:
+        frappe.log_error(title="Growatt Get Plant Data Error", message=str(e))
+        frappe.throw(_("Failed to get plant data: {0}").format(str(e)))
     except Exception as e:
         frappe.log_error(title="Growatt Get Plant Data Error", message=str(e))
         raise
 
-def get_sn_data(serialNumber):
+def get_sn_data(serialNumber: str) -> Dict[str, Any]:
+    """Get serial number data from Growatt API"""
+    token = get_token()
+    if not serialNumber:
+        frappe.throw(_("Serial number is required"))
+    if not token:
+        frappe.log_error(
+            title="Growatt SN Data Error", 
+            message="Token not retrieved before making request"
+        )
+        frappe.throw(_("Authentication token is missing"))
     try:
         params = get_params()
-        token = getToken()
         url = params.api_host + "/oss/searchInverter"
         payload = {
             "serverID": 1,
@@ -122,42 +165,57 @@ def get_sn_data(serialNumber):
         response = requests.post(url, data=payload, headers=headers)
         response.raise_for_status()
         data = response.json()
+        
         if not data:
-            frappe.log_error(
-                title="Growatt SN Data Error",
-                message="No data found for the given serial number",
-            )
-            frappe.msgprint("No data found for the given serial number")
+            frappe.throw(_("No data found for serial number: {0}").format(serialNumber))
+        
         return data
+    except requests.RequestException as e:
+        frappe.log_error(title="Growatt SN Data Error", message=str(e))
+        frappe.throw(_("Failed to get serial number data: {0}").format(str(e)))
     except Exception as e:
         frappe.log_error(title="Growatt SN Data Error", message=str(e))
         raise
 
 
-def get_active_equipaments(plantRequest):
+def get_active_equipaments(plantRequest: Dict[str, Any]) -> Dict[str, Any]:
+    """Get active equipment for a plant from Growatt API"""
     params = get_params()
-    token = getToken()     
+    token = get_token()     
     url = params.api_host + "/oss/getActiveEquipaments"
     query_params = f"?serverId={plantRequest['serverid']}&plantId={plantRequest['plantId']}&accountName={plantRequest['username']}&currPage=1"
     url = url + query_params
+    
     if not token:
-        frappe.log_error(title="Growatt Get Active Equipments Error", message="Token not retrieved before making request")
-        authOssApi()
-        token = getToken()
+        frappe.log_error(
+            title="Growatt Get Active Equipments Error", 
+            message="Token not retrieved before making request"
+        )
+        token = get_token()
+    
     headers = {"Authorization": f"Bearer {token}"}
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json()
+    except requests.RequestException as e:
+        frappe.log_error(title="Growatt Get Active Equipments Error", message=str(e))
+        frappe.throw(_("Failed to get active equipment: {0}").format(str(e)))
     except Exception as e:
         frappe.log_error(title="Growatt Get Active Equipments Error", message=str(e))
         raise
 
 @frappe.whitelist()
-def get_first_active_equipment():
+def get_first_active_equipment() -> Dict[str, Any]:
+    """Get first active equipment for a given serial number"""
     serialNumber = frappe.form_dict.get("serialNumber")
+    
+    if not serialNumber:
+        frappe.throw(_("Serial number is required"))
+    
     data = get_sn_data(serialNumber)
     obj = data.get("obj")
+    
     if isinstance(obj, dict) and obj:
         for key, items in obj.items():
             if isinstance(items, list) and items:
@@ -167,16 +225,23 @@ def get_first_active_equipment():
                 plantRequest["username"] = entry.get("accountName")
                 break
     else:
-        frappe.throw("No valid data found in the response.")
+        frappe.throw(_("No valid data found for serial number: {0}").format(serialNumber))
+    
     plantData = get_active_equipaments(plantRequest)
     return plantData
 
 @frappe.whitelist()
-def get_plant_info():
+def get_plant_info() -> Dict[str, Any]:
+    """Get plant information for a given serial number"""
     serialNumber = frappe.form_dict.get("serialNumber")
-    token = authOssApi()
+    
+    if not serialNumber:
+        frappe.throw(_("Serial number is required"))
+    
+    authOssApi()
     data = get_sn_data(serialNumber)
     obj = data.get("obj")
+    
     if isinstance(obj, dict) and obj:
         for key, items in obj.items():
             if isinstance(items, list) and items:
@@ -188,4 +253,4 @@ def get_plant_info():
                 break
         return plantRequest
     else:
-        frappe.throw("No valid data found in the response.")
+        frappe.throw(_("No valid data found for serial number: {0}").format(serialNumber))
