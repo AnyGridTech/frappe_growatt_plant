@@ -139,6 +139,7 @@ def get_plant_data(plantRequest: Dict[str, Any]) -> Dict[str, Any]:
         frappe.log_error(title="Growatt Get Plant Data Error", message=str(e))
         raise
 
+@frappe.whitelist()
 def get_sn_data(serialNumber: str) -> Dict[str, Any]:
     """Get serial number data from Growatt API"""
     token = get_token()
